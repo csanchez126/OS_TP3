@@ -21,7 +21,7 @@ void vmm_init (FILE *log)
   vmm_log = log;
 }
 
-
+// Un test
 // NE PAS MODIFIER CETTE FONCTION
 static void vmm_log_command (FILE *out, const char *command,
                              unsigned int laddress, /* Logical address. */
