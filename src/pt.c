@@ -30,6 +30,17 @@ void pt_init (FILE *log)
 
 /******************** ¡ NE RIEN CHANGER CI-DESSUS !  ******************/
 
+// Tableau pour le second-chance algorithm
+static bool referenceBits[NUM_PAGES];
+
+void initReferenceBits(){
+	for(int i=0 ; i< NUM_PAGES ; i++){
+		referenceBits[i] = false;
+	}
+}
+
+initReferenceBits();
+
 /* Recherche dans la table des pages.
  * Renvoie le `frame_number`, si valide, ou un nombre négatif sinon.  */
 static int pt__lookup (unsigned int page_number)
@@ -37,6 +48,7 @@ static int pt__lookup (unsigned int page_number)
   // TODO: COMPLÉTER CETTE FONCTION.
 	for(int i=0; i<NUM_PAGES; i++){
 		if(page_table[page_number].valid){
+			referenceBits[page_number] = true;
 			return page_table[page_number].frame_number;
 		}
 	}
@@ -48,6 +60,8 @@ static int pt__lookup (unsigned int page_number)
 static void pt__set_entry (unsigned int page_number, unsigned int frame_number)
 {
   // TODO: COMPLÉTER CETTE FONCTION.
+
+	/* À REVOIR, DOIT IMPLEMENTER UN ALGO DE PAGE REPLACEMENT*/
 	page_table[page_number].valid = true;
 	page_table[page_number].frame_number = frame_number;
 

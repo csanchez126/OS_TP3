@@ -43,6 +43,28 @@ char vmm_read (unsigned int laddress)
   read_count++;
   /* ¡ TODO: COMPLÉTER ! */
 
+  // Traduction de l'addresse en format page et offset
+  int page = laddress >> 8;
+  int offset = laddress & 0xff;
+
+  int frame = tlb_lookup(page, false);
+
+  if(frame>-1){ //le frame est dans le TLB
+	  int pm_add = (frame << 8)+offset;
+	  c = pm_read(pm_add);
+  }else if(pt_lookup(page) > 1){
+	  /* TODO Check page table*/
+	  int pm_add = (pt_lookup(page) << 8)+offset;
+	  c = pm_read(pm_add);
+  }else{
+
+	  /* TODO Not loaded in pt, get from backing store
+	   * and update PT, TLB
+	   * */
+  }
+
+
+
   // TODO: Fournir les arguments manquants.
   vmm_log_command (stdout, "READING", laddress, 0, 0, 0, 0, c);
   return c;

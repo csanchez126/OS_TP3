@@ -36,7 +36,8 @@ static int tlb__lookup (unsigned int page_number, bool write)
 {
   // TODO: COMPLÉTER CETTE FONCTION.
 	for(int i=0; i,TLB_NUM_ENTRIES; i++){
-		if(tlb_entries[i].page_number == page_number){
+		if(tlb_entries[i].page_number == page_number
+		   && write == tlb_entries[i].readonly /*???*/){
 			return tlb_entries[i].frame_number;
 		}
 	}
@@ -49,6 +50,28 @@ static void tlb__add_entry (unsigned int page_number,
                             unsigned int frame_number, bool readonly)
 {
   // TODO: COMPLÉTER CETTE FONCTION.
+	//On cherche s'il y a une case libre dans le TLB
+	bool freeFlag = false;
+	int freeEntry = -1;
+	for(int i=0; i<TLB_NUM_ENTRIES; i++){
+		if(tlb_entries[i].frame_number < 1){
+			int freeEntry = i;
+			freeFlag = true;
+			break;
+		}
+	}
+	if(freeFlag){ //Une case est libre, on assigne notre valeur
+		tlb_entries[freeEntry].page_number = page_number;
+		tlb_entries[freeEntry].frame_number = frame_number;
+		tlb_entries[freeEntry].readonly = readonly;
+	}
+	else{
+
+		//TODO ALGO TLB REPLACEMENT
+
+	}
+
+
 }
 
 /******************** ¡ NE RIEN CHANGER CI-DESSOUS !  ******************/
