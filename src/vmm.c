@@ -76,6 +76,12 @@ void vmm_write (unsigned int laddress, char c)
   write_count++;
   /* ¡ TODO: COMPLÉTER ! */
 
+  pm_download_page(0,0);
+  pm_write(0, 'T');
+  pm_write(1,'e');
+  pm_write(2, 's');
+  pm_write(3, 't');
+  pm_backup_frame(0,0);
   // TODO: Fournir les arguments manquants.
   vmm_log_command (stdout, "WRITING", laddress, 0, 0, 0, 0, c);
 }
