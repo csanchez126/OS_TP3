@@ -35,7 +35,7 @@ void tlb_init (FILE *log)
 static int tlb__lookup (unsigned int page_number, bool write)
 {
   // TODO: COMPLÉTER CETTE FONCTION.
-	for(int i=0; i,TLB_NUM_ENTRIES; i++){
+	for(int i=0; i<TLB_NUM_ENTRIES; i++){
 		if(tlb_entries[i].page_number == page_number
 		   && write == tlb_entries[i].readonly /*???*/){
 			return tlb_entries[i].frame_number;
@@ -86,7 +86,7 @@ void tlb_add_entry (unsigned int page_number,
 int tlb_lookup (unsigned int page_number, bool write)
 {
   int fn = tlb__lookup (page_number, write);
-  (*(page_number < 0 ? &tlb_miss_count : &tlb_hit_count))++;
+  (*(fn < 0 ? &tlb_miss_count : &tlb_hit_count))++;
   return fn;
 }
 

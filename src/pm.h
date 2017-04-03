@@ -13,6 +13,6 @@ char pm_read (unsigned int physical_address);
 void pm_write (unsigned int physical_address, char);
 void pm_clean (void);
 
-int findFrame();
+int find_victim_pm_frame();
 
 #endif

@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <stdbool.h>
+
 #include "conf.h"
 #include "pm.h"
 
@@ -14,7 +16,7 @@ static unsigned int write_count = 0;
 
 static int LRU[NUM_FRAMES];
 static int LRUcounter = 0;
-
+bool dirtyBit[NUM_FRAMES];
 
 // Initialise la mémoire physique
 void pm_init(FILE *backing_store, FILE *log) {
@@ -24,6 +26,7 @@ void pm_init(FILE *backing_store, FILE *log) {
 
 	for(int i; i<NUM_FRAMES; i++){
 		LRU[i] = 0;
+		dirtyBit[i] = false;
 	}
 
 }
@@ -43,9 +46,9 @@ void pm_download_page(unsigned int page_number, unsigned int frame_number) {
 		perror("Cannot read from backing store.");
 
 	//For testing
-//	for (int i = mem_index; i < mem_index + PAGE_FRAME_SIZE; i++) {
-//		printf("CHAR %d: %c\n", i, pm_memory[i]);
-//	}
+	for (int i = mem_index; i < mem_index + PAGE_FRAME_SIZE; i++) {
+		printf("CHAR %d: %c\n", i, pm_memory[i]);
+	}
 
 }
 
@@ -65,11 +68,14 @@ void pm_backup_frame(unsigned int frame_number, unsigned int page_number) {
 char pm_read(unsigned int physical_address) {
 	read_count++;
 	LRUcounter++;
+
 	if(physical_address==0){
 		LRU[0] = LRUcounter;
+		setDirtyBit(0, false);
 	}
 	else{
 		LRU[NUM_FRAMES/physical_address] = LRUcounter;
+		setDirtyBit(NUM_FRAMES/physical_address, false);
 	}
 	return pm_memory[physical_address];
 }
@@ -77,11 +83,14 @@ char pm_read(unsigned int physical_address) {
 void pm_write(unsigned int physical_address, char c) {
 	write_count++;
 	LRUcounter++;
+
 	if(physical_address==0){
 		LRU[0] = LRUcounter;
+		setDirtyBit(0, true);
 	}
 	else{
 		LRU[NUM_FRAMES/physical_address] = LRUcounter;
+		setDirtyBit(NUM_FRAMES/physical_address, true);
 	}
 	pm_memory[physical_address] = c;
 }
@@ -89,9 +98,12 @@ void pm_write(unsigned int physical_address, char c) {
 void pm_clean(void) {
 	// Assurez vous d'enregistrer les modifications apportées au backing store!
 	/* ¡TODO: On doit looper pour backup chaque frame readonly du PT ? !*/
-	for(int i=0; i<NUM_PAGES; i++){
-
-	}
+//	for(int i=0; i<NUM_FRAMES; i++){
+//		if(getDirtyBit(i) == true){
+//			printf("backing up\n");
+//		  	pm_backup_frame(i, page);
+//		}
+//	}
 	// Enregistre l'état de la mémoire physique.
 	if (pm_log) {
 		for (unsigned int i = 0; i < PHYSICAL_MEMORY_SIZE; i++) {
@@ -136,4 +148,11 @@ int find_victim_pm_frame(){
 	}
 
 	return min;
+}
+
+bool getDirtyBit(int frame){
+	return dirtyBit[frame];
+}
+void setDirtyBit(int frame, bool b){
+	dirtyBit[frame] = b;
 }

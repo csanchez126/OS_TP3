@@ -15,24 +15,11 @@ static unsigned int read_count = 0;
 static unsigned int write_count = 0;
 static FILE* vmm_log;
 
-static int tlbLRU[TLB_NUM_ENTRIES];
-static int ptLRU[NUM_PAGES];
-static int pmLRU[NUM_FRAMES];
-
 void vmm_init (FILE *log)
 {
   // Initialise le fichier de journal.
   vmm_log = log;
 
-  for(int i; i<TLB_NUM_ENTRIES; i++){
-	  tlbLRU[i] = 0;
-  }
-  for(int i; i<NUM_PAGES; i++){
-  	  ptLRU[i] = 0;
-  }
-  for(int i; i<NUM_FRAMES; i++){
-  	  pmLRU[i] = 0;
-  }
 }
 
 // Un test
@@ -71,7 +58,7 @@ char vmm_read (unsigned int laddress)
 	  frame = pt_lookup(page);
 	  pm_add = (pt_lookup(page) << 8)+offset;
 	  c = pm_read(pm_add);
-	  // UPDATE TLB
+	  //TODO: UPDATE TLB
   }else{
   	  /* Frame not loaded in PT either, get from backing
   	   * store and update PT, TLB */
@@ -82,25 +69,21 @@ char vmm_read (unsigned int laddress)
 	  //	3.2 Page has been modified, upload to disk before reading
 	  frame = find_victim_pm_frame();
 	  printf("TLB and PT MISS, GOT FRAME: %d\n", frame);
-	  //Check if the PT entry is modified so we can backup
+	  //Check if the frame is dirty so we can backup
 	  //the associated frame to BACKING_STORE
-//	  if(pt_readonly_p(page)==true){
-//		  printf("backing up\n");
-//		  int backupFrame = pt_lookup(page);
-//		  printf("frameToBackup: %d\n",backupFrame);
-//		  if(backupFrame>-1){
-//			  pm_backup_frame(backupFrame, page);
-//		  }
-//
-//	  }
+  	  if(getDirtyBit(frame) == true){
+  		  int pageBackup = pt_page_lookup(frame); //Get page to swap out
+  		  printf("backing up frame %d to page %d\n", frame, pageBackup);
+  		  pm_backup_frame(frame, pageBackup);
+  		  pt_unset_entry(pageBackup); //Tell PT the page is not in PM anymore
+  	  }
 	  pm_download_page(page,frame); //Get page from BACKING_STORE
 	  pt_set_entry(page,frame); //Update PT
-	  //UPDATE TLB
+	  //TODO: UPDATE TLB
 	  pm_add = (frame << 8)+offset;//PM Address
 	  c = pm_read(pm_add); //Read PM address
 
   }
-  // TODO: Fournir les arguments manquants.
   vmm_log_command (stdout, "READING", laddress, page, frame, offset, pm_add, c);
   return c;
 }
@@ -137,25 +120,21 @@ void vmm_write (unsigned int laddress, char c)
   	  frame = find_victim_pm_frame();
   	  printf("TLB and PT MISS, GOT FRAME: %d\n", frame);
   	  pm_add = (frame << 8)+offset;
-  	  //Check if the PT entry is modified so we can backup
-  	  //the associated frame to BACKING_STORE
-//  	  if(pt_readonly_p(page) == true){
-//  		  printf("backing up\n");
-//  		  int backupFrame = pt_lookup(page);
-//  		  printf("frameToBackup: %d\n",backupFrame);
-//  		  if(backupFrame>-1){
-//  			pm_backup_frame(backupFrame, page);
-//  		  }
-//
-//  	  }
+	  //Check if the frame is dirty so we can backup
+	  //the associated frame to BACKING_STORE
+  	  if(getDirtyBit(frame) == true){
+  		  int pageBackup = pt_page_lookup(frame); //Get page to swap out
+  		  printf("backing up frame %d to page %d\n", frame, pageBackup);
+  		  pm_backup_frame(frame, pageBackup);
+  		  pt_unset_entry(pageBackup); //Tell PT the page is not in PM anymore
+  	  }
   	  pm_download_page(page,frame); //GET PAGE FROM BACKING STORE
   	  pt_set_entry(page,frame); //Update PT
-  	  //TODO UPDATE TLB
+  	  //TODO: UPDATE TLB
   	  pm_add = (frame << 8)+offset; //PM Address
   	  pm_write(pm_add,c); //Write c to PM
 
     }
-    // TODO: Fournir les arguments manquants.
 	vmm_log_command (stdout, "WRITING", laddress, page, frame, offset, pm_add, c);
 }
 
