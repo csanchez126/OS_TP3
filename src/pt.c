@@ -68,17 +68,6 @@ void pt_set_readonly(unsigned int page_number, bool readonly) {
 	page_table[page_number].readonly = readonly;
 }
 
-int pt_page_lookup(int frame){
-	for(int i=0; i<NUM_PAGES; i++){
-		if(page_table[i].frame_number == frame){
-			return i;
-		}
-	}
-	return -1;
-}
-
-
-
 /******************** ¡ NE RIEN CHANGER CI-DESSOUS !  ******************/
 
 void pt_set_entry(unsigned int page_number, unsigned int frame_number) {

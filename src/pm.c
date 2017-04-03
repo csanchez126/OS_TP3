@@ -15,9 +15,9 @@ static unsigned int read_count = 0;
 static unsigned int write_count = 0;
 
 static int LRU[NUM_FRAMES];
-static int LRUcounter = 0;
+static int LRUcounter = -1;
 bool dirtyBit[NUM_FRAMES];
-
+static int loadedPage[NUM_PAGES];
 // Initialise la mémoire physique
 void pm_init(FILE *backing_store, FILE *log) {
 	pm_backing_store = backing_store;
@@ -27,6 +27,7 @@ void pm_init(FILE *backing_store, FILE *log) {
 	for(int i; i<NUM_FRAMES; i++){
 		LRU[i] = 0;
 		dirtyBit[i] = false;
+		loadedPage[NUM_PAGES] = -1;
 	}
 
 }
@@ -35,7 +36,7 @@ void pm_init(FILE *backing_store, FILE *log) {
 void pm_download_page(unsigned int page_number, unsigned int frame_number) {
 	download_count++;
 	/* ¡ TODO: COMPLÉTER ! */
-
+	loadedPage[frame_number] = page_number;
 	int mem_index = frame_number * PAGE_FRAME_SIZE;
 	int backing_pos = page_number * PAGE_FRAME_SIZE;
 
@@ -44,12 +45,6 @@ void pm_download_page(unsigned int page_number, unsigned int frame_number) {
 	if (fread(pm_memory + mem_index, 1, PAGE_FRAME_SIZE, pm_backing_store)
 			!= PAGE_FRAME_SIZE)
 		perror("Cannot read from backing store.");
-
-	//For testing
-	for (int i = mem_index; i < mem_index + PAGE_FRAME_SIZE; i++) {
-		printf("CHAR %d: %c\n", i, pm_memory[i]);
-	}
-
 }
 
 // Sauvegarde la frame spécifiée dans la page du backing store
@@ -67,43 +62,23 @@ void pm_backup_frame(unsigned int frame_number, unsigned int page_number) {
 
 char pm_read(unsigned int physical_address) {
 	read_count++;
-	LRUcounter++;
-
-	if(physical_address==0){
-		LRU[0] = LRUcounter;
-		setDirtyBit(0, false);
-	}
-	else{
-		LRU[NUM_FRAMES/physical_address] = LRUcounter;
-		setDirtyBit(NUM_FRAMES/physical_address, false);
-	}
 	return pm_memory[physical_address];
 }
 
 void pm_write(unsigned int physical_address, char c) {
 	write_count++;
-	LRUcounter++;
-
-	if(physical_address==0){
-		LRU[0] = LRUcounter;
-		setDirtyBit(0, true);
-	}
-	else{
-		LRU[NUM_FRAMES/physical_address] = LRUcounter;
-		setDirtyBit(NUM_FRAMES/physical_address, true);
-	}
 	pm_memory[physical_address] = c;
 }
 
 void pm_clean(void) {
 	// Assurez vous d'enregistrer les modifications apportées au backing store!
-	/* ¡TODO: On doit looper pour backup chaque frame readonly du PT ? !*/
-//	for(int i=0; i<NUM_FRAMES; i++){
-//		if(getDirtyBit(i) == true){
-//			printf("backing up\n");
-//		  	pm_backup_frame(i, page);
-//		}
-//	}
+	for(int i=0; i<NUM_FRAMES; i++){
+		if(pm_getDirtyBit(i) == true){
+			printf("backing up\n");
+			int backupPage = pm_getLoadedPage(i);
+		  	pm_backup_frame(i, backupPage);
+		}
+	}
 	// Enregistre l'état de la mémoire physique.
 	if (pm_log) {
 		for (unsigned int i = 0; i < PHYSICAL_MEMORY_SIZE; i++) {
@@ -119,30 +94,31 @@ void pm_clean(void) {
 	fprintf(stdout, "PM writes: %4u\n", write_count);
 }
 
-int find_victim_pm_frame(){
-	int emptyFlag = -1;
-	char emptyFrame[PAGE_FRAME_SIZE];
-	char aFrame[PAGE_FRAME_SIZE];
-
-	memset(emptyFrame, '\0', sizeof(emptyFrame));
+int pm_find_victim_pm_frame(){
+	bool emptyFlag = false;
 	//Check if a frame is free
-	for(int i=0 ; i < NUM_FRAMES; i+=PAGE_FRAME_SIZE){
-		strncpy(aFrame, pm_memory+(i*PAGE_FRAME_SIZE), PAGE_FRAME_SIZE);
-		if(strcmp(aFrame, emptyFrame) == 0){
-			return i; //Found an empty frame
-		}else{
-			emptyFlag = i;
-			break;
+	for(int i=0 ; i < NUM_FRAMES; i++){
+		int counter = 0;
+		for(int j=0; j<PAGE_FRAME_SIZE; j++){
+			if(pm_memory[(i*PAGE_FRAME_SIZE)+j]== '\0'){
+				counter++;
+			}
+		}
+		if(counter==PAGE_FRAME_SIZE){
+			emptyFlag = true;
+			printf("FOUND EMPTY FRAME %d\n",i);
+			return i;
 		}
 	}
 	//No empty flag, find LRU frame
 	int min = 0;
-	if(emptyFlag > -1){
+	if(!emptyFlag){
 		for(int i=0; i<NUM_FRAMES; i++){
-			if(LRU[min] < LRU[i]){
+			if(LRU[min] > LRU[i]){
 				min = i;
 			}
 		}
+		printf("MIN: LRU[min] = %d\n", LRU[min]);
 	}else{
 		printf("Free frame error");
 	}
@@ -150,9 +126,17 @@ int find_victim_pm_frame(){
 	return min;
 }
 
-bool getDirtyBit(int frame){
+bool pm_getDirtyBit(int frame){
 	return dirtyBit[frame];
 }
-void setDirtyBit(int frame, bool b){
+void pm_setDirtyBit(int frame, bool b){
 	dirtyBit[frame] = b;
+}
+void pm_update_lru(int frame){
+	LRUcounter++;
+	LRU[frame]=LRUcounter;
+	return;
+}
+int pm_getLoadedPage(int frame){
+	return loadedPage[frame];
 }

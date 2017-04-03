@@ -13,6 +13,10 @@ char pm_read (unsigned int physical_address);
 void pm_write (unsigned int physical_address, char);
 void pm_clean (void);
 
-int find_victim_pm_frame();
+int pm_find_victim_pm_frame();
+bool pm_getDirtyBit(int frame);
+void pm_setDirtyBit(int frame, bool b);
+int pm_getLoadedPage(int frame);
+void pm_update_lru(int frame);
 
 #endif
