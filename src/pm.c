@@ -17,7 +17,7 @@ static unsigned int write_count = 0;
 static int LRU[NUM_FRAMES];
 static int LRUcounter = -1;
 bool dirtyBit[NUM_FRAMES];
-static int loadedPage[NUM_PAGES];
+static int loadedPage[NUM_FRAMES];
 // Initialise la mémoire physique
 void pm_init(FILE *backing_store, FILE *log) {
 	pm_backing_store = backing_store;
@@ -62,6 +62,7 @@ void pm_backup_frame(unsigned int frame_number, unsigned int page_number) {
 
 char pm_read(unsigned int physical_address) {
 	read_count++;
+
 	return pm_memory[physical_address];
 }
 
