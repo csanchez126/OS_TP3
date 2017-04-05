@@ -25,19 +25,28 @@ void tlb_init (FILE *log)
 {
   for (int i = 0; i < TLB_NUM_ENTRIES; i++)
     tlb_entries[i].frame_number = -1;
+
   tlb_log = log;
 }
 
 /******************** ¡ NE RIEN CHANGER CI-DESSUS !  ******************/
+
+//Structure pour aider a remplacer une entree du TLB
+static int tlb_lru_counter = -1;
+static int tlb_lru[TLB_NUM_ENTRIES] = {0};
+
+
 
 /* Recherche dans le TLB.
  * Renvoie le `frame_number`, si trouvé, ou un nombre négatif sinon.  */
 static int tlb__lookup (unsigned int page_number, bool write)
 {
   // TODO: COMPLÉTER CETTE FONCTION.
+
 	for(int i=0; i<TLB_NUM_ENTRIES; i++){
 		if(tlb_entries[i].page_number == page_number
-		   && write == tlb_entries[i].readonly /*???*/){
+		   && !write == tlb_entries[i].readonly /*???*/){
+			tlb_update_lru(i);
 			return tlb_entries[i].frame_number;
 		}
 	}
@@ -49,28 +58,37 @@ static int tlb__lookup (unsigned int page_number, bool write)
 static void tlb__add_entry (unsigned int page_number,
                             unsigned int frame_number, bool readonly)
 {
-  // TODO: COMPLÉTER CETTE FONCTION.
-	//On cherche s'il y a une case libre dans le TLB
-	bool freeFlag = false;
-	int freeEntry = -1;
+	int entry = tlb_find_victim();
+
+	tlb_update_lru(entry);
+	tlb_entries[entry].page_number = page_number;
+	tlb_entries[entry].frame_number = frame_number;
+	tlb_entries[entry].readonly = readonly;
+}
+
+ void tlb_update_lru(int entry){
+
+	tlb_lru_counter++;
+	tlb_lru[entry] = tlb_lru_counter;
+}
+
+int tlb_find_victim()
+{
+
 	for(int i=0; i<TLB_NUM_ENTRIES; i++){
-		if(tlb_entries[i].frame_number < 1){
-			int freeEntry = i;
-			freeFlag = true;
-			break;
+		if(tlb_entries[i].frame_number < 0){
+			return i;
 		}
 	}
-	if(freeFlag){ //Une case est libre, on assigne notre valeur
-		tlb_entries[freeEntry].page_number = page_number;
-		tlb_entries[freeEntry].frame_number = frame_number;
-		tlb_entries[freeEntry].readonly = readonly;
+
+	int min = 0;
+	for(int i=0; i<TLB_NUM_ENTRIES; i++){
+		if(tlb_lru[min] > tlb_lru[i]){
+			min = i;
+		}
 	}
-	else{
-
-		//TODO ALGO TLB REPLACEMENT
-
-	}
-
+	printf("FOUND LRU TLB ENTRY: %d\n", min);
+	return min;
 
 }
 
