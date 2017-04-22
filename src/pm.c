@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <time.h>
 #include <stdbool.h>
 
 #include "conf.h"
@@ -14,8 +15,7 @@ static unsigned int backup_count = 0;
 static unsigned int read_count = 0;
 static unsigned int write_count = 0;
 
-static int LRU[NUM_FRAMES];
-static int LRUcounter = -1;
+static time_t LRU[NUM_FRAMES];
 bool dirtyBit[NUM_FRAMES];
 static int loadedPage[NUM_FRAMES];
 // Initialise la mémoire physique
@@ -25,7 +25,6 @@ void pm_init(FILE *backing_store, FILE *log) {
 	memset(pm_memory, '\0', sizeof(pm_memory));
 
 	for(int i; i<NUM_FRAMES; i++){
-		LRU[i] = 0;
 		dirtyBit[i] = false;
 		loadedPage[NUM_PAGES] = -1;
 	}
@@ -134,8 +133,7 @@ void pm_setDirtyBit(int frame, bool b){
 	dirtyBit[frame] = b;
 }
 void pm_update_lru(int frame){
-	LRUcounter++;
-	LRU[frame]=LRUcounter;
+	LRU[frame]= time(NULL);
 	return;
 }
 int pm_getLoadedPage(int frame){

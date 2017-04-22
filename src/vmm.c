@@ -21,7 +21,6 @@ void vmm_init(FILE *log) {
 
 }
 
-// Un test
 // NE PAS MODIFIER CETTE FONCTION
 static void vmm_log_command(FILE *out, const char *command,
 		unsigned int laddress, /* Logical address. */
@@ -38,51 +37,54 @@ static void vmm_log_command(FILE *out, const char *command,
 char vmm_read(unsigned int laddress) {
 	char c = '!';
 	read_count++;
-	/* ¡ TODO: COMPLÉTER ! */
 
 	// Traduction de l'addresse en format page et offset
 	int page = laddress >> 8;
 	int offset = laddress & 0xff;
 
 	int frame = tlb_lookup(page, false);
-	int pm_add;
-	if (frame > -1) { //le frame est dans le TLB
-		printf("TLB HIT\n");
+	int pm_add; //physical address
 
-	} else if (pt_lookup(page) > -1) { //Pas dans le TLB, on regarde dans le PT
+	if (frame == -1) { //le frame n'est pas dans le TLB
+
+	  if(pt_lookup(page) > -1) { //Pas dans le TLB, on regarde dans le PT
+
 		printf("TLB MISS, checking PT\n");
 		frame = pt_lookup(page);
-		tlb_add_entry(page, frame, true);
+		tlb_add_entry(page, frame, false);
 
-		//TODO: UPDATE TLB
-	} else {
+	  }
+	  else {
 		/* Frame not loaded in PT either, get from backing
 		 * store and update PT, TLB */
 		//1. Find a frame in PM
 		//2. Is the frame free? Read into it from backing store
-		//3. Else frame not free
+		//3. Else frame not free (dirty)
 		//	3.1 Read only? Read from backing store into frame
 		//	3.2 Page has been modified, upload to disk before reading
-		frame = pm_find_victim_pm_frame();
-		printf("TLB and PT MISS, GOT FRAME: %d\n", frame);
-		//Check if the frame is dirty so we can backup
-		//the associated frame to BACKING_STORE
-		if (pm_getDirtyBit(frame) == true) {
-			int pageBackup = pm_getLoadedPage(frame); //Get page to swap out
-			printf("backing up frame %d to page %d\n", frame, pageBackup);
-			pm_backup_frame(frame, pageBackup);
-			pt_unset_entry(pageBackup); //Tell PT the page is not in PM anymore
-		}
-		pm_download_page(page, frame); //Get page from BACKING_STORE
-		pt_set_entry(page, frame); //Update PT
-		tlb_add_entry(page, frame, true);
 
+		frame = pm_find_victim_pm_frame();
+		pm_add = (frame << 8) + offset;
+		printf("TLB and PT MISS, GOT FRAME: %d\n", frame);
+
+		if (pm_getDirtyBit(frame) == true) {
+		  int pageBackup = pm_getLoadedPage(frame); //Get page to swap out
+		  printf("backing up frame %d to page %d\n", frame, pageBackup);
+		  pm_backup_frame(frame, pageBackup);
+		  pt_unset_entry(pageBackup); //Tell PT the page is not in PM anymore
+		}
+
+		pm_download_page(page, frame); 	  //Get page from BACKING_STORE
+		pt_set_entry(page, frame); 		  //Update PT
+		tlb_add_entry(page, frame, false);//Update TLB
+
+	  }
 	}
 
 	pm_update_lru(frame);
 	pm_setDirtyBit(frame, false);
 
-	pm_add = (frame << 8) + offset;
+
 	c = pm_read(pm_add);
 
 	vmm_log_command(stdout, "READING", laddress, page, frame, offset, pm_add,
@@ -98,43 +100,43 @@ void vmm_write(unsigned int laddress, char c) {
 	int page = laddress >> 8;
 	int offset = laddress & 0xff;
 
-	int frame = tlb_lookup(page, true);
-	int pm_add;
+	int frame = tlb_lookup(page, false);
+	int pm_add; //physical adress
 
+	if (frame == -1) { //le frame n'est pas dans le TLB
 
+	  if (pt_lookup(page) > -1) { //Pas dans le TLB, on regarde dans le PT
 
-	if (frame > -1) { //le frame est dans le TLB
-
-		printf("TLB HIT\n");
-	} else if (pt_lookup(page) > -1) { //Pas dans le TLB, on regarde dans le PT
 		printf("TLB MISS, checking PT\n");
 		frame = pt_lookup(page);
 		tlb_add_entry(page, frame, false);
-	} else {
+
+	  }
+	  else {
 		/* Frame not loaded in PT either, get from backing
 		 * store and update PT, TLB */
 		//1. Find a frame in PM
 		//2. Is the frame free? Read into it from backing store
-		//3. Else frame not free
+		//3. Else frame not free (dirty)
 		//	3.1 Read only? Read from backing store into frame
 		//	3.2 Page has been modified, upload to disk before reading
 		frame = pm_find_victim_pm_frame();
-		printf("TLB and PT MISS, GOT FRAME: %d\n", frame);
 		pm_add = (frame << 8) + offset;
-		//Check if the frame is dirty so we can backup
-		//the associated frame to BACKING_STORE
+		printf("TLB and PT MISS, GOT FRAME: %d\n", frame);
+
 		if (pm_getDirtyBit(frame) == true) {
 			int pageBackup = pm_getLoadedPage(frame); //Get page to swap out
 			printf("backing up frame %d to page %d\n", frame, pageBackup);
 			pm_backup_frame(frame, pageBackup);
 			pt_unset_entry(pageBackup); //Tell PT the page is not in PM anymore
 		}
-		pm_download_page(page, frame); //GET PAGE FROM BACKING STORE
-		pt_set_entry(page, frame); //Update PT
-		tlb_add_entry(page, frame, false);
 
+		pm_download_page(page, frame); 	  //GET PAGE FROM BACKING STORE
+		pt_set_entry(page, frame); 		  //Update PT
+		tlb_add_entry(page, frame, false);//Update TLB
+
+	  }
 	}
-
 	pm_update_lru(frame);
 	pm_setDirtyBit(frame, true);
 
