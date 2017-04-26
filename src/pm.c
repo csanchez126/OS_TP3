@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <time.h>
+ #include <time.h>
 #include <stdbool.h>
 
 #include "conf.h"
@@ -16,17 +16,16 @@ static unsigned int read_count = 0;
 static unsigned int write_count = 0;
 
 static time_t LRU[NUM_FRAMES];
-//bool dirtyBit[NUM_FRAMES];
 static int loadedPage[NUM_FRAMES];
+
 // Initialise la mémoire physique
 void pm_init(FILE *backing_store, FILE *log) {
 	pm_backing_store = backing_store;
 	pm_log = log;
 	memset(pm_memory, '\0', sizeof(pm_memory));
 
-	for(int i; i<NUM_FRAMES; i++){
-		//dirtyBit[i] = false;
-		loadedPage[NUM_PAGES] = -1;
+	for (int i; i < NUM_FRAMES; i++) {
+		loadedPage[i] = -1;
 	}
 
 }
@@ -72,11 +71,11 @@ void pm_write(unsigned int physical_address, char c) {
 
 void pm_clean(void) {
 	// Assurez vous d'enregistrer les modifications apportées au backing store!
-	for(int i=0; i<NUM_FRAMES; i++){
+	for (int i = 0; i < NUM_FRAMES; i++) {
 		int backupPage = pm_getLoadedPage(i);
-		if(pt_readonly_p(backupPage) == false){
+		if (pt_readonly_p(backupPage) == false) {
 			//printf("backing up\n");
-		  	pm_backup_frame(i, backupPage);
+			pm_backup_frame(i, backupPage);
 		}
 	}
 	// Enregistre l'état de la mémoire physique.
@@ -94,34 +93,33 @@ void pm_clean(void) {
 	fprintf(stdout, "PM writes: %4u\n", write_count);
 }
 
-int pm_find_victim_pm_frame(){
-	bool emptyFlag = false;
-	//Check if a frame is free
-	for(int i=0 ; i < NUM_FRAMES; i++){
+int pm_find_free_frame() {
+
+	for (int i = 0; i < NUM_FRAMES; i++) {
 		int counter = 0;
-		for(int j=0; j<PAGE_FRAME_SIZE; j++){
-			if(pm_memory[(i*PAGE_FRAME_SIZE)+j]== '\0'){
+		for (int j = 0; j < PAGE_FRAME_SIZE; j++) {
+			if (pm_memory[(i * PAGE_FRAME_SIZE) + j] == '\0') {
 				counter++;
 			}
 		}
-		if(counter==PAGE_FRAME_SIZE){
-			emptyFlag = true;
-			printf("FOUND EMPTY FRAME %d\n",i);
+		if (counter == PAGE_FRAME_SIZE) {
 			return i;
 		}
 	}
+	return -1;
+}
+
+int pm_find_victim_pm_frame() {
 	//No empty flag, find LRU frame
 	int min = 0;
-	if(!emptyFlag){
-		for(int i=0; i<NUM_FRAMES; i++){
-			if(LRU[min] > LRU[i]){
-				min = i;
-			}
-		}
-		printf("MIN: LRU[min] = %d\n", LRU[min]);
-	}else{
-		printf("Free frame error");
+
+	for (int i = 0; i < NUM_FRAMES; i++)
+	{
+		if (LRU[min] > LRU[i])
+			min = i;
+
 	}
+	printf("MIN: LRU[min] = %d\n", LRU[min]);
 
 	return min;
 }
@@ -132,10 +130,11 @@ int pm_find_victim_pm_frame(){
 //void pm_setDirtyBit(int frame, bool b){
 //	dirtyBit[frame] = b;
 //}
-void pm_update_lru(int frame){
-	LRU[frame]= time(NULL);
-	return;
+void pm_update_lru(int frame) {
+
+	LRU[frame] = time(NULL);
+
 }
-int pm_getLoadedPage(int frame){
+int pm_getLoadedPage(int frame) {
 	return loadedPage[frame];
 }
