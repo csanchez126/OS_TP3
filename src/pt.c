@@ -27,8 +27,6 @@ void pt_init(FILE *log) {
 
 /******************** ¡ NE RIEN CHANGER CI-DESSUS !  ******************/
 
-int FIFOqueue = 0;
-
 /* Recherche dans la table des pages.
  * Renvoie le `frame_number`, si valide, ou un nombre négatif sinon.  */
 static int pt__lookup(unsigned int page_number) {

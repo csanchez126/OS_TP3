@@ -16,7 +16,7 @@ static unsigned int read_count = 0;
 static unsigned int write_count = 0;
 
 static time_t LRU[NUM_FRAMES];
-bool dirtyBit[NUM_FRAMES];
+//bool dirtyBit[NUM_FRAMES];
 static int loadedPage[NUM_FRAMES];
 // Initialise la mémoire physique
 void pm_init(FILE *backing_store, FILE *log) {
@@ -25,7 +25,7 @@ void pm_init(FILE *backing_store, FILE *log) {
 	memset(pm_memory, '\0', sizeof(pm_memory));
 
 	for(int i; i<NUM_FRAMES; i++){
-		dirtyBit[i] = false;
+		//dirtyBit[i] = false;
 		loadedPage[NUM_PAGES] = -1;
 	}
 
@@ -73,9 +73,9 @@ void pm_write(unsigned int physical_address, char c) {
 void pm_clean(void) {
 	// Assurez vous d'enregistrer les modifications apportées au backing store!
 	for(int i=0; i<NUM_FRAMES; i++){
-		if(pm_getDirtyBit(i) == true){
-			printf("backing up\n");
-			int backupPage = pm_getLoadedPage(i);
+		int backupPage = pm_getLoadedPage(i);
+		if(pt_readonly_p(backupPage) == false){
+			//printf("backing up\n");
 		  	pm_backup_frame(i, backupPage);
 		}
 	}
@@ -126,12 +126,12 @@ int pm_find_victim_pm_frame(){
 	return min;
 }
 
-bool pm_getDirtyBit(int frame){
-	return dirtyBit[frame];
-}
-void pm_setDirtyBit(int frame, bool b){
-	dirtyBit[frame] = b;
-}
+//bool pm_getDirtyBit(int frame){
+//	return dirtyBit[frame];
+//}
+//void pm_setDirtyBit(int frame, bool b){
+//	dirtyBit[frame] = b;
+//}
 void pm_update_lru(int frame){
 	LRU[frame]= time(NULL);
 	return;

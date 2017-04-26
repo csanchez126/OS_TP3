@@ -66,23 +66,23 @@ char vmm_read(unsigned int laddress) {
 		frame = pm_find_victim_pm_frame();
 		pm_add = (frame << 8) + offset;
 		printf("TLB and PT MISS, GOT FRAME: %d\n", frame);
-
-		if (pm_getDirtyBit(frame) == true) {
-		  int pageBackup = pm_getLoadedPage(frame); //Get page to swap out
-		  printf("backing up frame %d to page %d\n", frame, pageBackup);
-		  pm_backup_frame(frame, pageBackup);
-		  pt_unset_entry(pageBackup); //Tell PT the page is not in PM anymore
+		int pageBackup = pm_getLoadedPage(frame);//Get page to swap out if necessary
+		if (pt_readonly_p(pageBackup) == true) {
+			printf("backing up frame %d to page %d\n", frame, pageBackup);
+			pm_backup_frame(frame, pageBackup);
+			pt_unset_entry(pageBackup); //Tell PT the page is not in PM anymore
 		}
 
 		pm_download_page(page, frame); 	  //Get page from BACKING_STORE
 		pt_set_entry(page, frame); 		  //Update PT
-		tlb_add_entry(page, frame, false);//Update TLB
+		pt_set_readonly(page, true);	  //Set readonly for freshly loaded page
+		tlb_add_entry(page, frame, true);//Update TLB
 
 	  }
 	}
 
 	pm_update_lru(frame);
-	pm_setDirtyBit(frame, false);
+	//pm_setDirtyBit(frame, false);
 
 
 	c = pm_read(pm_add);
@@ -109,6 +109,7 @@ void vmm_write(unsigned int laddress, char c) {
 
 		printf("TLB MISS, checking PT\n");
 		frame = pt_lookup(page);
+		pt_set_readonly(page, true);
 		tlb_add_entry(page, frame, false);
 
 	  }
@@ -124,8 +125,8 @@ void vmm_write(unsigned int laddress, char c) {
 		pm_add = (frame << 8) + offset;
 		printf("TLB and PT MISS, GOT FRAME: %d\n", frame);
 
-		if (pm_getDirtyBit(frame) == true) {
-			int pageBackup = pm_getLoadedPage(frame); //Get page to swap out
+		int pageBackup = pm_getLoadedPage(frame);//Get page to swap out if necessary
+		if (pt_readonly_p(pageBackup) == false) {
 			printf("backing up frame %d to page %d\n", frame, pageBackup);
 			pm_backup_frame(frame, pageBackup);
 			pt_unset_entry(pageBackup); //Tell PT the page is not in PM anymore
@@ -133,12 +134,14 @@ void vmm_write(unsigned int laddress, char c) {
 
 		pm_download_page(page, frame); 	  //GET PAGE FROM BACKING STORE
 		pt_set_entry(page, frame); 		  //Update PT
+
 		tlb_add_entry(page, frame, false);//Update TLB
 
 	  }
 	}
 	pm_update_lru(frame);
-	pm_setDirtyBit(frame, true);
+	//pm_setDirtyBit(frame, true);
+	pt_set_readonly(page, false);	  //Set readonly fo loaded page
 
 	pm_add = (frame << 8) + offset;
 	pm_write(pm_add, c);
