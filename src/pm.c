@@ -47,7 +47,7 @@ void pm_download_page(unsigned int page_number, unsigned int frame_number) {
 }
 
 // Sauvegarde la frame spécifiée dans la page du backing store
-void pm_backup_frame(unsigned int frame_number, unsigned int page_number) {
+void pm_backup_page(unsigned int frame_number, unsigned int page_number) {
 	backup_count++;
 	int mem_index = frame_number * PAGE_FRAME_SIZE;
 	int backing_pos = page_number * PAGE_FRAME_SIZE;
@@ -76,7 +76,7 @@ void pm_clean(void) {
 		int backupPage = pm_getLoadedPage(i);
 		if (pt_readonly_p(backupPage) == false) {
 			//printf("backing up\n");
-			pm_backup_frame(i, backupPage);
+			pm_backup_page(i, backupPage);
 		}
 	}
 	// Enregistre l'état de la mémoire physique.

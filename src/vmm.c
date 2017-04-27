@@ -74,7 +74,7 @@ char vmm_read(unsigned int laddress) {
 				if (pt_readonly_p(pageBackup) == false) {
 					printf("backing up frame %d to page %d\n", frame,
 							pageBackup);
-					pm_backup_frame(frame, pageBackup);
+					pm_backup_page(frame, pageBackup);
 					//Tell PT the page is not in PM anymore
 				}
 				pt_unset_entry(pageBackup);
@@ -138,7 +138,7 @@ void vmm_write(unsigned int laddress, char c) {
 				if (pt_readonly_p(pageBackup) == false) {
 					printf("backing up frame %d to page %d\n", frame,
 							pageBackup);
-					pm_backup_frame(frame, pageBackup);
+					pm_backup_page(frame, pageBackup);
 
 				}
 				pt_unset_entry(pageBackup); //Tell PT the page is not in PM anymore
