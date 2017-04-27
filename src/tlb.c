@@ -30,10 +30,10 @@ void tlb_init (FILE *log)
 }
 
 /******************** ¡ NE RIEN CHANGER CI-DESSUS !  ******************/
-#include <time.h>
-//Structure pour aider a remplacer une entree du TLB
-static time_t tlb_lru[TLB_NUM_ENTRIES];
 
+//Structure pour aider a remplacer une entree du TLB
+static int tlb_lru_counter = -1;
+static int tlb_lru[TLB_NUM_ENTRIES] = {0};
 
 /* Recherche dans le TLB.
  * Renvoie le `frame_number`, si trouvé, ou un nombre négatif sinon.  */
@@ -65,9 +65,9 @@ static void tlb__add_entry (unsigned int page_number,
 
  void tlb_update_lru(int entry){
 
-	//tlb_lru_counter++;
-	//tlb_lru[entry] = tlb_lru_counter;
-	 tlb_lru[entry] = time(NULL);
+	tlb_lru_counter++;
+	tlb_lru[entry] = tlb_lru_counter;
+	return;
 }
 
 int tlb_find_victim()
